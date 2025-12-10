@@ -1,391 +1,227 @@
-import React, { useEffect, useState, useRef } from "react";
-import styled, { keyframes } from "styled-components";
-import GaugeChart from "react-gauge-chart";
+import React, { useEffect, useState } from "react";
+import styled from "styled-components";
 import {
   LineChart,
   Line,
   XAxis,
   YAxis,
-  Tooltip,
   CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { motion } from "framer-motion";
 
-import { useMqttTemp } from "../../hook/useMqttTemp";
-import { useMqttFlow } from "../../hook/useMqttFlow";
-import { useMqttStatus } from "../../hook/useMqttStatus";
-import { MqttControlButtons } from "../../components/Button/MqttControlButtons";
+type WeatherData = {
+  wind: { time: string; speed: number }[];
+  waves: { day: string; height: number }[];
+  storms: { day: string; risk: number }[];
+};
 
-function MainPartSection() {
-  const temp = useMqttTemp();
-  const flow = useMqttFlow();
-  const status = useMqttStatus(); // ✅ สถานะปั๊ม ON/OFF
-
-  const [displayTemp, setDisplayTemp] = useState<number>(0);
-  const [displayFlow, setDisplayFlow] = useState<number>(0);
-
-  const [tempSeries, setTempSeries] = useState<Array<any>>([]);
-  const [flowSeries, setFlowSeries] = useState<Array<any>>([]);
-  const maxPoints = 120;
-
-  const lastTempRef = useRef<number | null>(null);
-  const lastFlowRef = useRef<number | null>(null);
-
-  // Pop-up alerts
-  const [popUps, setPopUps] = useState<
-    Array<{ id: number; message: string; status: string }>
-  >([]);
-  const popUpId = useRef<number>(0);
-
-  // smoothing Temp
-  useEffect(() => {
-    if (temp == null) return;
-    const factor = 0.12;
-    const interval = setInterval(() => {
-      setDisplayTemp((prev) => {
-        const diff = temp - prev;
-        if (Math.abs(diff) < 0.05) return temp;
-        return prev + diff * factor;
-      });
-    }, 40);
-    return () => clearInterval(interval);
-  }, [temp]);
-
-  // smoothing Flow
-  useEffect(() => {
-    if (flow == null) return;
-    const factor = 0.12;
-    const interval = setInterval(() => {
-      setDisplayFlow((prev) => {
-        const diff = flow - prev;
-        if (Math.abs(diff) < 0.05) return flow;
-        return prev + diff * factor;
-      });
-    }, 40);
-    return () => clearInterval(interval);
-  }, [flow]);
-
-  // series Temp
-  useEffect(() => {
-    if (temp == null) return;
-    const now = new Date();
-    if (lastTempRef.current !== temp) {
-      lastTempRef.current = temp;
-      setTempSeries((s) =>
-        [...s, { time: now.toLocaleTimeString(), value: Number(temp) }].slice(
-          -maxPoints
-        )
-      );
-    }
-  }, [temp]);
-
-  // series Flow
-  useEffect(() => {
-    if (flow == null) return;
-    const now = new Date();
-    if (lastFlowRef.current !== flow) {
-      lastFlowRef.current = flow;
-      setFlowSeries((s) =>
-        [...s, { time: now.toLocaleTimeString(), value: Number(flow) }].slice(
-          -maxPoints
-        )
-      );
-    }
-  }, [flow]);
-
-  // thresholds
-  const TEMP_WARNING = 70;
-  const TEMP_DANGER = 85;
-  const FLOW_LOW = 70;
-  const FLOW_CRITICAL = 10;
-
-  const tempStatus =
-    displayTemp >= TEMP_DANGER
-      ? "danger"
-      : displayTemp >= TEMP_WARNING
-      ? "warning"
-      : "normal";
-
-  const flowStatus =
-    displayFlow <= FLOW_CRITICAL
-      ? "danger"
-      : displayFlow <= FLOW_LOW
-      ? "warning"
-      : "normal";
-
-  // Alert status for card background
-  const getAlertStatus = () => {
-    if (tempStatus === "danger" || flowStatus === "danger") return "danger";
-    if (tempStatus === "warning" || flowStatus === "warning") return "warning";
-    return "normal";
+async function fetchWeatherData() {
+  return {
+    wind: [
+      { time: "06:00", speed: 12 },
+      { time: "09:00", speed: 18 },
+      { time: "12:00", speed: 25 },
+      { time: "15:00", speed: 32 },
+      { time: "18:00", speed: 28 },
+      { time: "21:00", speed: 20 },
+    ],
+    waves: [
+      { day: "Mon", height: 1.2 },
+      { day: "Tue", height: 1.8 },
+      { day: "Wed", height: 2.4 },
+      { day: "Thu", height: 3.1 },
+      { day: "Fri", height: 2.7 },
+    ],
+    storms: [
+      { day: "Mon", risk: 10 },
+      { day: "Tue", risk: 30 },
+      { day: "Wed", risk: 60 },
+      { day: "Thu", risk: 80 },
+      { day: "Fri", risk: 40 },
+    ],
   };
+}
 
-  // Pop-up alerts
+export default function WeatherDashboard() {
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+
   useEffect(() => {
-    const messages: Array<{ message: string; status: string }> = [];
-    if (tempStatus === "danger")
-      messages.push({
-        message: `อุณหภูมิสูงเกิน ${TEMP_DANGER} °C`,
-        status: "danger",
-      });
-    else if (tempStatus === "warning")
-      messages.push({
-        message: `อุณหภูมิเกิน ${TEMP_WARNING} °C`,
-        status: "warning",
-      });
-
-    if (flowStatus === "danger")
-      messages.push({
-        message: `Flow ต่ำกว่า ${FLOW_CRITICAL} L/min`,
-        status: "danger",
-      });
-    else if (flowStatus === "warning")
-      messages.push({
-        message: `Flow ต่ำกว่า ${FLOW_LOW} L/min`,
-        status: "warning",
-      });
-
-    messages.forEach((msg) => {
-      popUpId.current += 1;
-      const id = popUpId.current;
-      setPopUps((prev) => [
-        ...prev,
-        { id, message: msg.message, status: msg.status },
-      ]);
-      // remove after 5 sec
-      setTimeout(() => {
-        setPopUps((prev) => prev.filter((p) => p.id !== id));
-      }, 5000);
+    fetchWeatherData().then((data) => {
+      setWeather(data);
     });
-  }, [tempStatus, flowStatus]);
+  }, []);
+
+  if (!weather) return <Loading>กำลังโหลดข้อมูล...</Loading>;
 
   return (
     <MainSection>
+      {/* ☀️ ดวงอาทิตย์ลอย */}
+      <Sun
+        animate={{ scale: [1, 1.1, 1] }}
+        transition={{ repeat: Infinity, duration: 4 }}
+      />
+
+      {/* ☁️ เมฆลอย */}
+      <CloudLeft
+        animate={{ x: [0, 40, 0] }}
+        transition={{ repeat: Infinity, duration: 7 }}
+      />
+      <CloudRight
+        animate={{ x: [0, -50, 0] }}
+        transition={{ repeat: Infinity, duration: 9 }}
+      />
+
       <MainBox>
         <Header>
-          <Title>PLACLOUD DASHBOARD</Title>
-          <Subtitle>Realtime from MQTT (Temp + Flow + Pump)</Subtitle>
+          <Title>พยากรณ์อากาศ</Title>
+          <Subtitle>ข้อมูลจากกรมอุตุนิยมวิทยา</Subtitle>
         </Header>
-        <Row gutter="l">
-          <Col span={12} gutter="l">
-            <GaugeCard>
-              <CardTitle>Temperature</CardTitle>
-              <GaugeWrapper>
-                <GaugeChart
-                  id="temp-gauge"
-                  nrOfLevels={20}
-                  percent={Math.max(0, Math.min(1, displayTemp / 100))}
-                  colors={["#00FF00", "#FFBF00", "#FF0000"]}
-                  animate={false}
-                  hideText={true} // ซ่อนตัวเลขเดิม
+
+        {/* การ์ดแสดงสภาพอากาศปัจจุบัน */}
+        <NowCard>
+          <div>
+            <TempText>29°</TempText>
+            <StatusText>ท้องฟ้าโปร่ง</StatusText>
+          </div>
+          <WeatherIcon src="https://cdn-icons-png.flaticon.com/512/6974/6974833.png" />
+        </NowCard>
+
+        {/* 🌀 ความเร็วลม */}
+        <Card>
+          <CardTitle>กราฟความเร็วลมตามช่วงเวลา (กม./ชม.)</CardTitle>
+          <ChartWrapper>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={weather.wind}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="time" />
+                <YAxis />
+                <Tooltip />
+                <Line
+                  type="monotone"
+                  dataKey="speed"
+                  stroke="#00e6ff"
+                  strokeWidth={3}
+                  dot={false}
                 />
-                <TempValue>{displayTemp.toFixed(1)} °C</TempValue>
-              </GaugeWrapper>
-              <StatusRow>
-                <StatusDot status={tempStatus} />
-                <StatusText>
-                  {tempStatus === "danger"
-                    ? "อุณหภูมิสูงมาก"
-                    : tempStatus === "warning"
-                    ? "อุณหภูมิสูง"
-                    : "ปกติ"}
-                </StatusText>
-              </StatusRow>
-            </GaugeCard>
-          </Col>
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartWrapper>
+        </Card>
 
-          <Col span={12} gutter="l">
-            <GaugeCard>
-              <CardTitle>Flow Rate</CardTitle>
-              <GaugeWrapper>
-                <GaugeChart
-                  id="flow-gauge"
-                  nrOfLevels={20}
-                  percent={Math.max(0, Math.min(1, displayFlow / 100))}
-                  textColor="#fff"
-                  formatTextValue={() => `${displayFlow.toFixed(2)} L/min`}
-                  colors={["#00FF00", "#FFBF00", "#FF0000"]}
-                  animate={false}
-                  hideText={true}
+        {/* 🌊 คลื่นทะเล */}
+        <Card>
+          <CardTitle>ความสูงคลื่นรายวัน (เมตร)</CardTitle>
+          <ChartWrapper>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={weather.waves}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="day" />
+                <YAxis />
+                <Tooltip />
+                <Line
+                  type="monotone"
+                  dataKey="height"
+                  stroke="#ffc107"
+                  strokeWidth={3}
+                  dot={false}
                 />
-                <FlowValue>{displayFlow.toFixed(1)} L/min</FlowValue>
-              </GaugeWrapper>
-              <StatusRow>
-                <StatusDot status={flowStatus} />
-                <StatusText>
-                  {flowStatus === "danger"
-                    ? "Flow ต่ำมาก"
-                    : flowStatus === "warning"
-                    ? "Flow ต่ำ"
-                    : "ปกติ"}
-                </StatusText>
-              </StatusRow>
-            </GaugeCard>
-          </Col>
-        </Row>
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartWrapper>
+        </Card>
 
-        {/* Row 2 : Charts */}
-        <Row gutter="l">
-          <Col span={12} gutter="l">
-            <ChartCard>
-              <CardTitle>Temp Trend</CardTitle>
-              <ChartArea>
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={tempSeries}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" minTickGap={20} />
-                    <YAxis domain={["dataMin - 5", "dataMax + 5"]} />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      dot={false}
-                      stroke="#ffcc00"
-                      strokeWidth={2}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartArea>
-            </ChartCard>
-          </Col>
-          <Col span={12} gutter="l">
-            <ChartCard>
-              <CardTitle>Flow Trend</CardTitle>
-              <ChartArea>
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={flowSeries}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" minTickGap={20} />
-                    <YAxis domain={["dataMin - 2", "dataMax + 2"]} />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      dot={false}
-                      stroke="#00e6ff"
-                      strokeWidth={2}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartArea>
-            </ChartCard>
-          </Col>
-        </Row>
+        {/* ⛈️ ความเสี่ยงพายุ */}
+        <Card>
+          <CardTitle>โอกาสเกิดพายุ</CardTitle>
 
-        {/* Row 3 : Status Cards */}
-        <Row gutter="l">
-          <Col span={6} gutter="l">
-            <SmallCard>
-              <SmallTitle>Latest Temp</SmallTitle>
-              <SmallValue>{displayTemp.toFixed(1)} °C</SmallValue>
-              <SmallNote>
-                Threshold: {TEMP_WARNING} / {TEMP_DANGER} °C
-              </SmallNote>
-            </SmallCard>
-          </Col>
-          <Col span={6} gutter="l">
-            <SmallCard>
-              <SmallTitle>Latest Flow</SmallTitle>
-              <SmallValue>{displayFlow.toFixed(2)} L/min</SmallValue>
-              <SmallNote>
-                Low: {FLOW_LOW} / {FLOW_CRITICAL} L/min
-              </SmallNote>
-            </SmallCard>
-          </Col>
-          <Col span={6} gutter="l">
-            {/* ✅ แสดงสถานะปั๊ม */}
-            <SmallCard>
-              <SmallTitle>Pump Status</SmallTitle>
-              <SmallValue>
-                {status === "ON" ? "กำลังทำงาน" : "หยุดทำงาน"}
-              </SmallValue>
-              <SmallNote>MQTT: Pump/Status</SmallNote>
-            </SmallCard>
-          </Col>
-          <Col span={6} gutter="l">
-            <AlertCard status={getAlertStatus()}>
-              <AlertTitle>Alerts</AlertTitle>
-              <AlertList>
-                {tempStatus === "danger" && (
-                  <li>อุณหภูมิสูงเกิน {TEMP_DANGER} °C</li>
-                )}
-                {tempStatus === "warning" && (
-                  <li>อุณหภูมิเกิน {TEMP_WARNING} °C</li>
-                )}
-                {flowStatus === "danger" && (
-                  <li>Flow ต่ำกว่า {FLOW_CRITICAL} L/min</li>
-                )}
-                {flowStatus === "warning" && (
-                  <li>Flow ต่ำกว่า {FLOW_LOW} L/min</li>
-                )}
-                {tempStatus === "normal" && flowStatus === "normal" && (
-                  <li>สภาพปกติ</li>
-                )}
-              </AlertList>
-            </AlertCard>
-          </Col>
-        </Row>
+          <StormGrid>
+            {weather.storms.map((item) => {
+              let level = "ต่ำ";
+              let color = "#4caf50";
 
-        {/* --- ปุ่มควบคุม --- */}
-        <Row gutter="l">
-          <Col span={12}>
-            <MqttControlButtons disableOn={status === "ON"} />
-          </Col>
-        </Row>
+              if (item.risk >= 70) {
+                level = "สูง";
+                color = "#ff1744";
+              } else if (item.risk >= 40) {
+                level = "กลาง";
+                color = "#ff9100";
+              }
 
-        {/* Pop-up Alerts */}
-        <PopUpContainer>
-          {popUps.map((p) => (
-            <PopUp key={p.id} status={p.status}>
-              {p.message}
-            </PopUp>
-          ))}
-        </PopUpContainer>
+              return (
+                <StormBox key={item.day}>
+                  <StormDaySmall>{item.day}</StormDaySmall>
+                  <StormLevelSmall style={{ color }}>{level}</StormLevelSmall>
+                  <StormPercent>{item.risk}%</StormPercent>
+                </StormBox>
+              );
+            })}
+          </StormGrid>
+        </Card>
       </MainBox>
     </MainSection>
   );
 }
 
-export default MainPartSection;
-
-// ================== Styled Components ==================
-
-const TempValue = styled.div`
-  margin-top: -20px;
-  text-align: center;
-  color: #fff;
-  font-weight: 600;
-  font-size: 2rem;
-`;
-
-const FlowValue = styled.div`
-  margin-top: -20px;
-  text-align: center;
-  color: #fff;
-  font-weight: 600;
-  font-size: 2rem;
-`;
+/* ================== Styled Components ================== */
 
 const MainSection = styled.div`
   width: 100%;
   min-height: 100vh;
   padding: 24px;
   padding-top: 104px;
-  background-color: #fffbde;
+  background: linear-gradient(to bottom, #4aa8ff, #1e3271);
   display: flex;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
+`;
+
+const Sun = styled(motion.div)`
+  position: absolute;
+  top: 40px;
+  right: 50px;
+  width: 140px;
+  height: 140px;
+  background: #ffeb3b;
+  border-radius: 50%;
+  box-shadow: 0 0 40px rgba(255, 243, 99, 0.9);
+`;
+
+const CloudLeft = styled(motion.div)`
+  position: absolute;
+  top: 160px;
+  left: 30px;
+  width: 160px;
+  height: 70px;
+  background: white;
+  opacity: 0.8;
+  border-radius: 40px;
+`;
+
+const CloudRight = styled(motion.div)`
+  position: absolute;
+  top: 260px;
+  right: 20px;
+  width: 200px;
+  height: 85px;
+  background: white;
+  opacity: 0.75;
+  border-radius: 50px;
 `;
 
 const MainBox = styled.div`
   width: 100%;
-  max-width: 1200px;
-  background: #1e3271;
+  max-width: 1100px;
+  background: rgba(255, 255, 255, 0.15);
   padding: 28px;
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 28px;
+  color: #fff;
 `;
 
 const Header = styled.div`
@@ -393,189 +229,104 @@ const Header = styled.div`
 `;
 
 const Title = styled.h1`
-  font-size: 2rem;
-  color: #ffdc7c;
+  font-size: 2.4rem;
+  color: #ffe08a;
   margin: 0;
 `;
 
 const Subtitle = styled.p`
   color: #ffffffcc;
-  margin: 6px 0 0;
+  margin-top: 6px;
 `;
 
-/* ------------------ Grid ------------------ */
-const gutterMap: Record<string, number> = {
-  s: 8,
-  m: 16,
-  l: 24,
-  xl: 32,
-};
-
-const Row = styled.div<{ gutter?: number | "s" | "m" | "l" | "xl" }>`
+const NowCard = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  margin-left: -${(p) => (typeof p.gutter === "string" ? gutterMap[p.gutter] / 2 : (p.gutter ?? 0) / 2)}px;
-  margin-right: -${(p) => (typeof p.gutter === "string" ? gutterMap[p.gutter] / 2 : (p.gutter ?? 0) / 2)}px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  backdrop-filter: blur(8px);
 `;
 
-const Col = styled.div<{
-  span?: number;
-  gutter?: number | "s" | "m" | "l" | "xl";
-}>`
-  padding-left: ${(p) =>
-    typeof p.gutter === "string"
-      ? gutterMap[p.gutter] / 2
-      : (p.gutter ?? 0) / 2}px;
-  padding-right: ${(p) =>
-    typeof p.gutter === "string"
-      ? gutterMap[p.gutter] / 2
-      : (p.gutter ?? 0) / 2}px;
-  flex: 0 0 ${(p) => (p.span ? (p.span / 24) * 100 : 100)}%;
-  max-width: ${(p) => (p.span ? (p.span / 24) * 100 : 100)}%;
-
-  @media (max-width: 768px) {
-    flex: 0 0 100%;
-    max-width: 100%;
-    margin-bottom: 24px;
-  }
+const TempText = styled.div`
+  font-size: 4rem;
+  font-weight: bold;
 `;
 
-/* ------------------ Cards ------------------ */
-const GaugeCard = styled.div`
-  background: rgba(255, 255, 255, 0.04);
-  padding: 12px;
+const StatusText = styled.div`
+  font-size: 1.4rem;
+  margin-top: -6px;
+`;
+
+const WeatherIcon = styled.img`
+  width: 100px;
+`;
+
+const Card = styled.div`
+  background: rgba(255, 255, 255, 0.15);
+  padding: 20px;
+  border-radius: 14px;
+  backdrop-filter: blur(6px);
+`;
+
+const CardTitle = styled.h2`
+  margin: 0 0 16px 0;
+  font-size: 1.4rem;
+  color: #ffe08a;
+`;
+
+const ChartWrapper = styled.div`
+  width: 100%;
+  height: 250px;
+`;
+
+const StormGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 10px;
+`;
+
+const StormBox = styled.div`
+  background: rgba(255, 255, 255, 0.18);
+  padding: 10px;
   border-radius: 10px;
   text-align: center;
-`;
-
-const CardTitle = styled.div`
-  color: #fff;
-  font-weight: 600;
-  margin-bottom: 6px;
-`;
-
-const GaugeWrapper = styled.div`
-  max-width: 360px;
-  margin: 0 auto;
-`;
-
-const StatusRow = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 8px;
-`;
-
-const StatusDot = styled.span<{ status: string }>`
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: ${(p) =>
-    p.status === "danger"
-      ? "#ff4d4f"
-      : p.status === "warning"
-      ? "#ffbf00"
-      : "#52c41a"};
-`;
-
-const StatusText = styled.span`
-  color: #fff;
-`;
-
-const ChartCard = styled.div`
-  background: rgba(255, 255, 255, 0.04);
-  padding: 12px;
-  border-radius: 10px;
-`;
-
-const ChartArea = styled.div`
-  height: 220px;
-`;
-
-const SmallCard = styled.div`
-  background: #122049;
-  padding: 12px;
-  border-radius: 8px;
-  color: #fff;
-  max-height: 80px;
-`;
-
-const SmallTitle = styled.div`
-  font-size: 0.95rem;
-  color: #ffdc7c;
-`;
-
-const SmallValue = styled.div`
-  font-size: 1.3rem;
-  font-weight: 600;
-`;
-
-const SmallNote = styled.div`
-  font-size: 0.8rem;
-  color: #fffccc;
-`;
-
-/* ------------------ Alert ------------------ */
-interface AlertCardProps {
-  status?: "normal" | "warning" | "danger";
-}
-
-const AlertCard = styled.div<AlertCardProps>`
-  background: ${(p) =>
-    p.status === "danger"
-      ? "#ff4d4f"
-      : p.status === "warning"
-      ? "#ffa940"
-      : "#52c41a"};
-  padding: 12px;
-  border-radius: 8px;
-  color: #fff;
-  transition: background 0.3s ease;
-  min-height: 80px;
-`;
-
-const AlertTitle = styled.div`
-  font-weight: 700;
-  margin-bottom: 6px;
-`;
-
-const AlertList = styled.ul`
-  margin: 0;
-  padding-left: 18px;
-  color: #ffd9d9;
-  li {
-    margin-bottom: 6px;
-  }
-`;
-
-/* ------------------ Pop-up ------------------ */
-const popUpAnim = keyframes`
-  0% { transform: translateY(-20px); opacity: 0; }
-  10% { transform: translateY(0); opacity: 1; }
-  90% { transform: translateY(0); opacity: 1; }
-  100% { transform: translateY(-20px); opacity: 0; }
-`;
-
-const PopUpContainer = styled.div`
-  position: fixed;
-  top: 24px;
-  right: 24px;
+  backdrop-filter: blur(6px);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  z-index: 999;
+  gap: 4px;
 `;
 
-const PopUp = styled.div<{ status: string }>`
-  background: ${(p) =>
-    p.status === "danger"
-      ? "#ff4d4f"
-      : p.status === "warning"
-      ? "#ffa940"
-      : "#52c41a"};
+const StormDaySmall = styled.div`
+  font-size: 1rem;
   color: #fff;
-  padding: 12px 16px;
-  border-radius: 8px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-  animation: ${popUpAnim} 5s forwards;
+  font-weight: bold;
+`;
+
+const StormLevelSmall = styled.div`
+  font-size: 0.9rem;
+  font-weight: bold;
+`;
+
+const StormPercent = styled.div`
+  font-size: 0.9rem;
+  opacity: 0.9;
+`;
+
+const StormDay = styled.div`
+  color: #fff;
+`;
+
+const StormLevel = styled.div`
+  font-weight: bold;
+  height: 250px;
+`;
+
+const Loading = styled.div`
+  color: white;
+  text-align: center;
+  margin-top: 50px;
+  font-size: 1.6rem;
 `;
