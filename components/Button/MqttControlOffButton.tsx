@@ -31,7 +31,7 @@ const Button = styled.button<{ color: string }>`
     cursor: not-allowed;
   }
 
-    @media only screen and (max-width: 1200px) {
-       min-width: 100%;
-    }
+  @media only screen and (max-width: 1200px) {
+    min-width: 100%;
+  }
 `;

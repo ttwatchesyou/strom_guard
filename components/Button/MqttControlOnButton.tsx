@@ -32,6 +32,6 @@ const Button = styled.button<{ color: string }>`
   }
 
   @media only screen and (max-width: 1200px) {
-       min-width: 100%;
-    }
+    min-width: 100%;
+  }
 `;

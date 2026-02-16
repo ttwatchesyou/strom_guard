@@ -3,11 +3,17 @@ import styled from "styled-components";
 import mqtt from "mqtt";
 import { Tooltip } from "antd";
 import { motion } from "framer-motion";
-import { ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Line } from "recharts";
+import {
+  ResponsiveContainer,
+  LineChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Line,
+} from "recharts";
 import { MqttControlOnButton } from "../../components/Button/MqttControlOnButton";
 import { MqttControlOffButton } from "../../components/Button/MqttControlOffButton";
 import Head from "next/head";
-
 
 /* ===== Component ===== */
 function Control() {
@@ -36,22 +42,26 @@ function Control() {
   };
 
   return (
-     <><Head>
-      <title>Mechatronics and Robotics</title>
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <link href="/logo/MechaLogo.png" rel="icon" />
-      <meta property="og:title" content="Mechatronics and Robotics" />
-    </Head>
-    <MainSection>
+    <>
+      <Head>
+        <title>Mechatronics and Robotics</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link href="/logo/MechaLogo.png" rel="icon" />
+        <meta property="og:title" content="Mechatronics and Robotics" />
+      </Head>
+      <MainSection>
         <Sun
           animate={{ scale: [1, 1.1, 1] }}
-          transition={{ repeat: Infinity, duration: 4 }} />
+          transition={{ repeat: Infinity, duration: 4 }}
+        />
         <CloudLeft
           animate={{ x: [0, 40, 0] }}
-          transition={{ repeat: Infinity, duration: 7 }} />
+          transition={{ repeat: Infinity, duration: 7 }}
+        />
         <CloudRight
           animate={{ x: [0, -50, 0] }}
-          transition={{ repeat: Infinity, duration: 9 }} />
+          transition={{ repeat: Infinity, duration: 9 }}
+        />
         <MainBox>
           <Header>
             <Title>Control Panel</Title>
@@ -62,7 +72,8 @@ function Control() {
             <MqttControlOffButton />
           </NowCard>
         </MainBox>
-      </MainSection></>
+      </MainSection>
+    </>
   );
 }
 
@@ -124,14 +135,13 @@ const MainBox = styled.div`
   gap: 28px;
   color: #fff;
 
-  
-    // @media only screen and (max-width: 1200px) {
-    //     font-size: 30px;
-    // }
+  // @media only screen and (max-width: 1200px) {
+  //     font-size: 30px;
+  // }
 
-    @media only screen and (max-width: 890px) {
-        flexwrap: wrap;
-    }
+  @media only screen and (max-width: 890px) {
+    flexwrap: wrap;
+  }
 `;
 
 const Header = styled.div`
@@ -158,11 +168,11 @@ const NowCard = styled.div`
   background: rgba(255, 255, 255, 0.2);
   border-radius: 18px;
   backdrop-filter: blur(8px);
-  
-    @media only screen and (max-width: 1200px) {
-        display: flex;
-        flex-direction: column;
-    }
+
+  @media only screen and (max-width: 1200px) {
+    display: flex;
+    flex-direction: column;
+  }
 `;
 
 const TempText = styled.div`

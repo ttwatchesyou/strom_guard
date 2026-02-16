@@ -3,8 +3,8 @@ import React, { useState } from "react";
 import styled from "styled-components";
 
 /* ================== CONFIG ================== */
-const UI_SIZE = 600; 
-const MAP_SIZE_CM = 200;   
+const UI_SIZE = 600;
+const MAP_SIZE_CM = 200;
 const SCALE = UI_SIZE / MAP_SIZE_CM;
 
 /* ================== TYPES ================== */
@@ -20,7 +20,6 @@ const nodes = [
   { id: "C", x: -85, y: -85 },
   { id: "D", x: 85, y: -85 },
 ];
-
 
 export default function MapPage() {
   const [pos] = useState<Position>({ x: 0, y: 0 });

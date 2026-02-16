@@ -9,7 +9,6 @@ const { Header } = Layout;
 const HeaderComponent: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 
-
   const router = useRouter();
 
   return (
@@ -21,8 +20,8 @@ const HeaderComponent: React.FC = () => {
           src="/logo/MechaLogo.png"
         />
         <StyledButton onClick={() => router.push("/control")}>
-                Control
-              </StyledButton>
+          Control
+        </StyledButton>
 
         {/* <NameTag>
          Department of Mechatronics and Robotics, Rayong Technical College
@@ -179,10 +178,6 @@ const HeadLogo = styled.img`
   }
 `;
 
-
-
 interface MobileMenuProps {
   isMenuOpen: boolean;
 }
-
-
