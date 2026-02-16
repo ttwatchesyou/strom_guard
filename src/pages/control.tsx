@@ -21,7 +21,7 @@ function Control() {
   const [status, setStatus] = useState("Disconnected");
 
   useEffect(() => {
-    const mqttClient = mqtt.connect("ws://192.168.1.10:9001");
+    const mqttClient = mqtt.connect("wss://0d495914d04845f5914e55fd3e65c6e4.s1.eu.hivemq.cloud:8884/mqtt");
     mqttClient.on("connect", () => {
       setStatus("Connected to MQTT");
     });

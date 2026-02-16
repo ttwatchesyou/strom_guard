@@ -11,7 +11,7 @@ export const MqttControlOffButton: React.FC<Props> = ({ disabled }) => {
 
   return (
     <Button color="#F44336" onClick={turnOff} disabled={disabled}>
-      DANGER
+      Red
     </Button>
   );
 };
