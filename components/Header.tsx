@@ -19,9 +19,9 @@ const HeaderComponent: React.FC = () => {
           onClick={() => router.push("/")}
           src="/logo/MechaLogo.png"
         />
-        <StyledButton onClick={() => router.push("/control")}>
+        {/* <StyledButton onClick={() => router.push("/control")}>
           Control
-        </StyledButton>
+        </StyledButton> */}
 
         {/* <NameTag>
          Department of Mechatronics and Robotics, Rayong Technical College
