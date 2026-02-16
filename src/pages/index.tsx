@@ -3,6 +3,7 @@ import Layout from "../../components/Layout/Layout";
 import MainPartSection from "./dashboard";
 import { NextPageWithLayout } from "./_app";
 import Head from "next/head";
+import Control from "./control";
 
 const Home: NextPageWithLayout = () => {
   return (
@@ -15,7 +16,7 @@ const Home: NextPageWithLayout = () => {
           <meta property="og:title" content="Mechatronics and Robotics" />
         </Head>
       </>
-      <MainPartSection />
+      <Control />
     </>
   );
 };

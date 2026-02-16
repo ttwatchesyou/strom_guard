@@ -9,15 +9,6 @@ const { Header } = Layout;
 const HeaderComponent: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
-  };
 
   const router = useRouter();
 
@@ -29,6 +20,10 @@ const HeaderComponent: React.FC = () => {
           onClick={() => router.push("/")}
           src="/logo/MechaLogo.png"
         />
+        <StyledButton onClick={() => router.push("/control")}>
+                Control
+              </StyledButton>
+
         {/* <NameTag>
          Department of Mechatronics and Robotics, Rayong Technical College
         </NameTag> */}
@@ -84,22 +79,6 @@ const HeaderComponent: React.FC = () => {
 export default HeaderComponent;
 
 // Style components
-const NameTag = styled.div`
-  font-family: Prompt;
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 16px;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-  word-wrap: break-word;
-  @media (max-width: 1024px) {
-    font-size: 22px;
-    line-height: 32px;
-  }
-`;
 
 const StyledButton = styled.div`
   display: inline-flex;
@@ -152,7 +131,7 @@ const StyledButton = styled.div`
   }
 
   @media (max-width: 1024px) {
-    font-size: 22px;
+    font-size: 14px;
     line-height: 32px;
     padding: 10px 16px;
   }
@@ -184,7 +163,7 @@ const WrapperHeader = styled.div`
   padding: 16px 24px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   @media (max-width: 1024px) {
   }
 `;
@@ -200,58 +179,10 @@ const HeadLogo = styled.img`
   }
 `;
 
-const DesktopMenuSection = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  @media (max-width: 1024px) {
-    display: none;
-  }
-`;
 
-const MobileMenuIcon = styled.div`
-  display: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #2f638a;
-
-  @media (max-width: 1024px) {
-    display: block;
-  }
-`;
 
 interface MobileMenuProps {
   isMenuOpen: boolean;
 }
 
-const MobileMenu = styled.div<MobileMenuProps>`
-  position: fixed;
-  gap: 32px;
-  top: 0;
-  right: 0;
-  width: 100%;
-  height: 50vh;
-  background: white;
-  box-shadow: -4px 0 8px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  padding: 16px;
-  transform: ${({ isMenuOpen }) =>
-    isMenuOpen ? "translateX(0)" : "translateX(100%)"};
-  transition: transform 0.3s ease-in-out;
-  z-index: 15;
 
-  @media (max-width: 767px) {
-    gap: 12px;
-  }
-`;
-
-const Overlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 10;
-`;
